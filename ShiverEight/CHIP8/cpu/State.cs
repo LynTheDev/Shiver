@@ -45,4 +45,10 @@ public class State
     {
         Array.Copy(Font, 0, Memory, FontsAddress, Font.Length);
     }
+
+    public void ReadCartIntoMemory()
+    {
+        byte[] CartBytes = File.ReadAllBytes(Shiver.Cart);
+        Array.Copy(CartBytes, 0, Memory, 0x200, CartBytes.Length);
+    }
 }

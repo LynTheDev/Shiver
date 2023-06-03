@@ -1,4 +1,5 @@
-﻿using Raylib_cs;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Raylib_cs;
 using ShiverEight.CHIP8.cpu;
 using System.Numerics;
 
@@ -6,7 +7,10 @@ namespace ShiverEight.FrontEnd;
 
 public class Window
 {
-    private RenderTexture2D displayTexture;
+    private RenderTexture2D _displayTexture;
+    private RenderTexture2D _menuTexture;
+    private EmuStates _gameState = EmuStates.Menu;
+
     private readonly State _state;
 
     public Window(State state)
@@ -16,43 +20,132 @@ public class Window
 
     public void Spawn()
     {
-        Raylib.InitWindow(600, 400, Shiver.Cart);
-        Raylib.SetTargetFPS(60);
+        Raylib.InitWindow(600, 400, "No cart inserted");
+        Raylib.SetTargetFPS(10);
 
         Raylib.SetWindowState(ConfigFlags.FLAG_WINDOW_RESIZABLE);
 
-        displayTexture = Raylib.LoadRenderTexture(64, 32);
+        _displayTexture = Raylib.LoadRenderTexture(64, 32);
+        _menuTexture = Raylib.LoadRenderTexture(200, 100);
 
         while (!Raylib.WindowShouldClose())
-        { 
-            Raylib.BeginTextureMode(displayTexture);
-                for (int y = 0; y < _state.Display.GetLength(1); y++)
+        {
+            if (_gameState == EmuStates.Menu)
+            {
+                if (Raylib.CheckCollisionRecs(
+                        new Rectangle(100 - 12, 40, 25, 13),
+                        new Rectangle(Raylib.GetMouseX(), Raylib.GetMouseY(), 5, 5)
+                    )
+                )
                 {
-                    for (int x = 0; x < _state.Display.GetLength(0); x++)
+                    if (Raylib.IsMouseButtonPressed(MouseButton.MOUSE_BUTTON_LEFT))
                     {
-                        if (_state.Display[x, y])
-                            Raylib.DrawPixel(x, y, Color.WHITE);
+                        if (Shiver.Cart != null)
+                        {
+                            _state.ReadCartIntoMemory();
+
+                            Thread cpu = new Thread(Shiver.Services.GetRequiredService<Loop>().Execute);
+                            cpu.Start();
+
+                            Raylib.HideCursor();
+
+                            _gameState = EmuStates.Playing;
+                        }
                         else
-                            Raylib.DrawPixel(x, y, Color.BLACK);
+                        {
+                            ShiverCart.GetCartPath();
+                        }
                     }
                 }
-            Raylib.EndTextureMode();
 
+                if (Raylib.CheckCollisionRecs(
+                        new Rectangle(100 - 19, 55, 40, 13),
+                        new Rectangle(Raylib.GetMouseX(), Raylib.GetMouseY(), 5, 5)
+                    )
+                )
+                {
+                    if (Raylib.IsMouseButtonPressed(MouseButton.MOUSE_BUTTON_LEFT))
+                    {
+                        ShiverCart.GetCartPath();
+                    }
+                }
+
+                Raylib.BeginTextureMode(_menuTexture);
+                    Raylib.ClearBackground(Color.BLACK);
+
+                    Raylib.DrawRectangle(Raylib.GetMouseX(), Raylib.GetMouseY(), 2, 2, Color.YELLOW);
+                    Raylib.DrawText("Shiver Eight", 100 - ((2 * 12) + 6), 10, 10, Color.WHITE);
+
+                    Raylib.DrawRectangleLinesEx(
+                        new Rectangle(100 - 12, 40, 25, 13),
+                        1f,
+                        Color.WHITE
+                    );
+                    Raylib.DrawText("Play", 100 - 10, 41, 1, Color.WHITE);
+
+                    Raylib.DrawRectangleLinesEx(
+                        new Rectangle(100 - 19, 55, 40, 13),
+                        1f,
+                        Color.WHITE
+                    );
+                    Raylib.DrawText("Choose", 100 - 17, 56, 1, Color.WHITE);
+
+                if (Shiver.Cart != null)
+                        Raylib.DrawText($"Cart: {ShiverCart.GetShortName(Shiver.Cart)}", 5, 88, 1, Color.WHITE);
+                    else
+                        Raylib.DrawText("Cart: None", 5, 88, 1, Color.WHITE);
+                Raylib.EndTextureMode();
+            }
+
+            if (_gameState == EmuStates.Playing)
+            {
+                Raylib.BeginTextureMode(_displayTexture);
+                    Raylib.ClearBackground(Color.BLACK);
+
+                    for (int y = 0; y < _state.Display.GetLength(1); y++)
+                    {
+                        for (int x = 0; x < _state.Display.GetLength(0); x++)
+                        {
+                            if (_state.Display[x, y])
+                                Raylib.DrawPixel(x, y, Color.WHITE);
+                            else
+                                Raylib.DrawPixel(x, y, Color.BLACK);
+                        }
+                    }
+                Raylib.EndTextureMode();
+            }
+            
             Raylib.BeginDrawing();
-                Raylib.ClearBackground(Color.RAYWHITE);
-                
-                Raylib.DrawTexturePro(
-                    displayTexture.texture,
-                    new Rectangle(0, 0, displayTexture.texture.width, -displayTexture.texture.height),
-                    new Rectangle(0, 0, Raylib.GetScreenWidth(), Raylib.GetScreenHeight()),
-                    new Vector2(0, 0),
-                    0,
-                    Color.WHITE
-                );
+                if (_gameState == EmuStates.Menu)
+                {
+                    Raylib.DrawTexturePro(
+                        _menuTexture.texture,
+                        new Rectangle(0, 0, _menuTexture.texture.width, -_menuTexture.texture.height),
+                        new Rectangle(0, 0, Raylib.GetScreenWidth(), Raylib.GetScreenHeight()),
+                        new Vector2(0, 0),
+                        0,
+                        Color.WHITE
+                    );
+                }
+
+                if (_gameState == EmuStates.Playing)
+                {
+                    Raylib.ClearBackground(Color.RAYWHITE);
+
+                    Raylib.DrawTexturePro(
+                        _displayTexture.texture,
+                        new Rectangle(0, 0, _displayTexture.texture.width, -_displayTexture.texture.height),
+                        new Rectangle(0, 0, Raylib.GetScreenWidth(), Raylib.GetScreenHeight()),
+                        new Vector2(0, 0),
+                        0,
+                        Color.WHITE
+                    );
+                }
             Raylib.EndDrawing();
         }
 
-        Raylib.UnloadRenderTexture(displayTexture);
+        Raylib.UnloadRenderTexture(_displayTexture);
+        Raylib.UnloadRenderTexture(_menuTexture);
         Raylib.CloseWindow();
     }
 }
