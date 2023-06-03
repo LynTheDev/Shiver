@@ -39,6 +39,8 @@ public class Window
             Raylib.EndTextureMode();
 
             Raylib.BeginDrawing();
+                Raylib.ClearBackground(Color.RAYWHITE);
+                
                 Raylib.DrawTexturePro(
                     displayTexture.texture,
                     new Rectangle(0, 0, displayTexture.texture.width, -displayTexture.texture.height),

@@ -1,11 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using ShiverEight.CHIP8.cpu;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
 namespace ShiverEight.FrontEnd;
 
 public static class ShiverConsole
