@@ -160,6 +160,14 @@ public class Loop
                         
                     break;
                 case 0xe000:
+                    switch (instruction & 0x00FF)
+                    {
+                        case 0x9E:
+                            break;
+                        case 0xA1:
+                            break;
+                    }
+
                     break;
                 case 0xf000:
                     switch (instruction & 0x00FF)

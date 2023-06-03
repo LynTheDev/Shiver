@@ -21,20 +21,28 @@ public class Window
     public void Spawn()
     {
         Raylib.InitWindow(600, 400, "No cart inserted");
-        Raylib.SetTargetFPS(10);
+        Raylib.SetTargetFPS(60);
 
         Raylib.SetWindowState(ConfigFlags.FLAG_WINDOW_RESIZABLE);
 
         _displayTexture = Raylib.LoadRenderTexture(64, 32);
-        _menuTexture = Raylib.LoadRenderTexture(200, 100);
+
+        int menuWidth = 200, menuHeight = 100;
+        _menuTexture = Raylib.LoadRenderTexture(menuWidth, menuHeight);
 
         while (!Raylib.WindowShouldClose())
         {
             if (_gameState == EmuStates.Menu)
             {
+                Vector2 mouse = Raylib.GetMousePosition();
+                Vector2 virtualMouse = new Vector2(
+                    mouse.X / Raylib.GetScreenWidth() * menuWidth, 
+                    mouse.Y / Raylib.GetScreenHeight() * menuHeight
+                );
+
                 if (Raylib.CheckCollisionRecs(
                         new Rectangle(100 - 12, 40, 25, 13),
-                        new Rectangle(Raylib.GetMouseX(), Raylib.GetMouseY(), 5, 5)
+                        new Rectangle((int)virtualMouse.X, (int)virtualMouse.Y, 5, 5)
                     )
                 )
                 {
@@ -60,7 +68,7 @@ public class Window
 
                 if (Raylib.CheckCollisionRecs(
                         new Rectangle(100 - 19, 55, 40, 13),
-                        new Rectangle(Raylib.GetMouseX(), Raylib.GetMouseY(), 5, 5)
+                        new Rectangle((int)virtualMouse.X, (int)virtualMouse.Y, 5, 5)
                     )
                 )
                 {
@@ -73,7 +81,6 @@ public class Window
                 Raylib.BeginTextureMode(_menuTexture);
                     Raylib.ClearBackground(Color.BLACK);
 
-                    Raylib.DrawRectangle(Raylib.GetMouseX(), Raylib.GetMouseY(), 2, 2, Color.YELLOW);
                     Raylib.DrawText("Shiver Eight", 100 - ((2 * 12) + 6), 10, 10, Color.WHITE);
 
                     Raylib.DrawRectangleLinesEx(
@@ -130,8 +137,6 @@ public class Window
 
                 if (_gameState == EmuStates.Playing)
                 {
-                    Raylib.ClearBackground(Color.RAYWHITE);
-
                     Raylib.DrawTexturePro(
                         _displayTexture.texture,
                         new Rectangle(0, 0, _displayTexture.texture.width, -_displayTexture.texture.height),
